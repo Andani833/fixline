@@ -1,0 +1,826 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Fixline</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one top bar with three role tabs; each portal is a two-column workspace that stacks on phones */
+:root {
+  --bg: #F2F5F9;
+  --surface: #FFFFFF;
+  --surface-2: #E8EDF4;
+  --line: #D3DBE6;
+  --fg: #13202F;
+  --muted: #506177;
+  --accent: #1F5FBF;
+  --accent-fg: #FFFFFF;
+  --st-open: #B45309;
+  --st-sched: #6D28D9;
+  --st-prog: #0F766E;
+  --st-done: #15803D;
+  --danger: #B42318;
+  --font-display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+  --font-body: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0D1520; --surface: #142030; --surface-2: #1B2A3E; --line: #263650;
+    --fg: #E7EEF7; --muted: #98A9BF; --accent: #6EA2F2; --accent-fg: #0B1626;
+    --st-open: #F0A248; --st-sched: #B39BFA; --st-prog: #4CC9BA; --st-done: #5FD28A; --danger: #FF8A80;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0D1520; --surface: #142030; --surface-2: #1B2A3E; --line: #263650;
+  --fg: #E7EEF7; --muted: #98A9BF; --accent: #6EA2F2; --accent-fg: #0B1626;
+  --st-open: #F0A248; --st-sched: #B39BFA; --st-prog: #4CC9BA; --st-done: #5FD28A; --danger: #FF8A80;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg);
+  font: 15px/1.55 var(--font-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 56px;
+}
+.page { max-width: 1120px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: 28px; line-height: 1.15; font-weight: 700; }
+h2 { font-size: 18px; font-weight: 600; }
+h3 { font-size: 16px; font-weight: 600; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+.mono { font-family: var(--font-mono); font-size: 13px; font-weight: 500; letter-spacing: 0.01em; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* top bar */
+.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px 20px; padding-bottom: 16px; margin-bottom: 26px; border-bottom: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.mark { width: 34px; height: 34px; border-radius: 9px; background: var(--accent); color: var(--accent-fg); display: grid; place-items: center; font: 700 19px/1 var(--font-display); flex: none; }
+.brand-name { font: 700 21px/1 var(--font-display); letter-spacing: -0.02em; }
+.brand-tag { font-size: 13px; color: var(--muted); margin-top: 3px; }
+.roles { display: flex; gap: 4px; background: var(--surface-2); padding: 4px; border-radius: 11px; }
+.roles a { color: var(--muted); text-decoration: none; font-weight: 500; font-size: 14px; padding: 8px 14px; border-radius: 8px; white-space: nowrap; }
+.roles a:hover { color: var(--fg); }
+.roles a[aria-current="page"] { background: var(--surface); color: var(--fg); box-shadow: 0 0 0 1px var(--line); }
+@media (max-width: 560px) { .roles { width: 100%; } .roles a { flex: 1; text-align: center; padding: 8px 6px; font-size: 13.5px; } }
+
+.portal[hidden] { display: none; }
+.portal-head { display: grid; gap: 6px; margin-bottom: 22px; }
+.portal-head p { color: var(--muted); max-width: 62ch; }
+
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 880px) { .two { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; min-width: 0; }
+.card + .card { margin-top: 16px; }
+.card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
+
+/* stepper */
+.stepper { list-style: none; display: flex; gap: 6px; margin: 0 0 18px; padding: 0; counter-reset: s; }
+.stepper li { flex: 1; counter-increment: s; border-top: 3px solid var(--line); padding-top: 7px; font-size: 13px; color: var(--muted); }
+.stepper li::before { content: "Step " counter(s) " · "; }
+.stepper li.past { border-color: var(--accent); color: var(--fg); }
+.stepper li.on { border-color: var(--accent); color: var(--fg); font-weight: 600; }
+
+/* forms */
+.fgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.full { grid-column: 1 / -1; }
+@media (max-width: 520px) { .fgrid { grid-template-columns: minmax(0, 1fr); } }
+.field { display: grid; gap: 5px; min-width: 0; }
+.field > span, legend { font-size: 13px; font-weight: 600; color: var(--muted); }
+fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+legend { padding: 0; margin-bottom: 5px; }
+input[type="text"], input[type="tel"], select, textarea {
+  width: 100%; font: inherit; color: var(--fg); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px;
+}
+textarea { resize: vertical; min-height: 84px; }
+input::placeholder, textarea::placeholder { color: var(--muted); opacity: 0.75; }
+.urg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 520px) { .urg { grid-template-columns: minmax(0, 1fr); } }
+.opt { position: relative; display: grid; gap: 2px; border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; cursor: pointer; background: var(--surface); }
+.opt input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+.opt b { font-size: 14px; }
+.opt small { font-size: 12px; color: var(--muted); line-height: 1.35; }
+.opt:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+.opt:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.err { color: var(--danger); font-size: 13.5px; }
+.err ul { margin: 0; padding-left: 18px; }
+.err:empty { display: none; }
+
+.btn { font: inherit; font-weight: 600; font-size: 14px; padding: 9px 15px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+.btn:hover:not(:disabled) { background: var(--surface-2); }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; }
+.btn.primary:hover:not(:disabled) { background: var(--accent); filter: brightness(1.08); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-row { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* chips */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font: inherit; font-size: 14px; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+.chip:hover:not(:disabled) { background: var(--surface-2); }
+.chip.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); font-weight: 600; }
+.chip:disabled { opacity: 0.4; cursor: not-allowed; text-decoration: line-through; }
+.chip small { color: var(--muted); }
+.label { font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 8px; }
+
+/* quick fix list */
+.fixes { margin: 12px 0 18px; padding-left: 22px; display: grid; gap: 9px; }
+
+/* pills and tags */
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; padding: 3px 10px; border-radius: 999px; white-space: nowrap; color: var(--c); background: color-mix(in srgb, var(--c) 13%, var(--surface)); border: 1px solid color-mix(in srgb, var(--c) 30%, transparent); }
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--c); }
+.st-open { --c: var(--st-open); } .st-sched { --c: var(--st-sched); } .st-prog { --c: var(--st-prog); } .st-done { --c: var(--st-done); }
+.u-high { color: var(--danger); font-weight: 600; }
+.u-normal, .u-low { color: var(--muted); }
+
+/* customer ticket cards */
+.tickets { display: grid; gap: 12px; }
+.tk { border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 10px; background: var(--surface); min-width: 0; }
+.tk-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+.tk-title { font-weight: 600; }
+.tk p { overflow-wrap: anywhere; }
+.track { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.track li { border-top: 4px solid var(--line); padding-top: 6px; font-size: 12px; color: var(--muted); line-height: 1.3; }
+.track li.done { border-color: var(--accent); color: var(--fg); }
+.track li.now { border-color: var(--accent); color: var(--fg); font-weight: 600; }
+.track.fin li { border-color: var(--st-done); color: var(--fg); }
+.note { font-size: 14px; color: var(--muted); }
+.note b { color: var(--fg); font-weight: 600; }
+.empty { border: 1px dashed var(--line); border-radius: 10px; padding: 22px; color: var(--muted); text-align: center; }
+.phone-row { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; margin-bottom: 16px; }
+.phone-row .field { flex: 1; min-width: 180px; }
+
+/* coordinator */
+.actions-bar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
+@media (max-width: 640px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 2px; }
+.stat b { font: 700 24px/1.1 var(--font-display); font-variant-numeric: tabular-nums; }
+.stat span { font-size: 13px; color: var(--muted); }
+.stat.flag b { color: var(--danger); }
+.work { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(300px, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 960px) { .work { grid-template-columns: minmax(0, 1fr); } }
+.tablewrap { overflow-x: auto; margin: 0 -20px; padding: 0 20px; }
+table { border-collapse: collapse; width: 100%; min-width: 740px; }
+th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 11px 10px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 14px; }
+tr[data-row] { cursor: pointer; }
+tr[data-row]:hover td { background: color-mix(in srgb, var(--accent) 5%, var(--surface)); }
+tr[data-row].sel td { background: color-mix(in srgb, var(--accent) 11%, var(--surface)); }
+.rowbtn { font: inherit; background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+td small { display: block; color: var(--muted); font-size: 12.5px; }
+.detail { position: sticky; top: 16px; }
+@media (max-width: 960px) { .detail { position: static; } }
+.kv { display: grid; gap: 8px; margin: 12px 0; }
+.kv div { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px; }
+.kv dt { color: var(--muted); font-size: 13px; }
+.kv dd { margin: 0; overflow-wrap: anywhere; }
+.desc { background: var(--surface-2); border-radius: 8px; padding: 10px 12px; white-space: pre-wrap; overflow-wrap: anywhere; margin-bottom: 14px; font-size: 14px; }
+.assign { border-top: 1px solid var(--line); padding-top: 14px; display: grid; gap: 12px; }
+.row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.hint { font-size: 13px; color: var(--muted); min-height: 1.4em; }
+.timeline { list-style: none; margin: 14px 0 0; padding: 0 0 0 14px; border-left: 2px solid var(--line); display: grid; gap: 10px; }
+.timeline li { font-size: 13.5px; position: relative; }
+.timeline li::before { content: ""; position: absolute; left: -20px; top: 7px; width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+.timeline time { display: block; color: var(--muted); font-size: 12px; }
+.sub { font-size: 12px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 600; margin-top: 16px; }
+
+/* technician */
+.who { display: flex; flex-wrap: wrap; align-items: end; gap: 12px 16px; margin-bottom: 20px; }
+.who .field { min-width: 220px; }
+.day { font: 600 15px/1.2 var(--font-display); margin: 22px 0 10px; display: flex; gap: 10px; align-items: baseline; }
+.day small { font: 400 13px var(--font-body); color: var(--muted); }
+.jobs { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); }
+.job { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.job-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+.when { font: 600 15px var(--font-display); font-variant-numeric: tabular-nums; margin-right: 8px; }
+.job .kv { margin: 0; }
+.job textarea { min-height: 70px; }
+.done-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+.done-list li { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; font-size: 14px; }
+
+.foot { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); max-width: 70ch; }
+#toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: 14px; font-weight: 500; max-width: calc(100vw - 32px); z-index: 20; box-shadow: 0 6px 24px rgba(0,0,0,0.25); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
+</style>
+
+<div class="page">
+  <header class="top">
+    <div class="brand">
+      <span class="mark" aria-hidden="true">F</span>
+      <div>
+        <div class="brand-name">Fixline</div>
+        <div class="brand-tag">IT support for Tshwane homes and small offices</div>
+      </div>
+    </div>
+    <nav class="roles" aria-label="Portals">
+      <a href="#customer" data-role="customer">Customer</a>
+      <a href="#coordinator" data-role="coordinator">Call coordinator</a>
+      <a href="#technician" data-role="technician">Technician</a>
+    </nav>
+  </header>
+
+  <main>
+    <!-- CUSTOMER -->
+    <section id="p-customer" class="portal" aria-labelledby="h-customer">
+      <div class="portal-head">
+        <h1 id="h-customer">Get your IT problem sorted</h1>
+        <p>Describe what is wrong, try a quick fix, and book a technician visit if it does not work.</p>
+      </div>
+      <div class="two">
+        <div class="card" id="custFlow">
+          <ol class="stepper" id="stepper" aria-label="Progress">
+            <li class="on">Describe</li>
+            <li>Quick fix</li>
+            <li>Book a visit</li>
+          </ol>
+
+          <div id="step-form">
+            <h2 style="margin-bottom:14px">Log a problem</h2>
+            <div id="custFormMount"></div>
+          </div>
+
+          <div id="step-help" hidden>
+            <h2 id="helpTitle"></h2>
+            <p class="muted" id="helpIntro" style="margin-top:6px"></p>
+            <ol class="fixes" id="helpList"></ol>
+            <div class="btn-row">
+              <button type="button" class="btn primary" data-act="fixed">That fixed it</button>
+              <button type="button" class="btn" data-act="needTech">Still not working, book a technician</button>
+            </div>
+          </div>
+
+          <div id="step-book" hidden>
+            <h2>Choose a time for the visit</h2>
+            <p class="muted" style="margin:6px 0 16px">This is your preferred time. A call coordinator confirms it and assigns a technician.</p>
+            <div class="label">Day</div>
+            <div class="chips" id="dateChips" style="margin-bottom:16px"></div>
+            <div class="label">Time</div>
+            <div class="chips" id="timeChips" style="margin-bottom:18px"></div>
+            <div class="btn-row">
+              <button type="button" class="btn primary" id="confirmBook" data-act="confirmBook" disabled>Request this visit</button>
+              <button type="button" class="btn" data-act="skipBook">Decide later</button>
+            </div>
+          </div>
+
+          <div id="step-done" hidden>
+            <h2 id="doneTitle"></h2>
+            <p class="muted" id="doneMsg" style="margin:8px 0 18px"></p>
+            <button type="button" class="btn" data-act="again">Log another problem</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>Your tickets</h2></div>
+          <div class="phone-row">
+            <label class="field"><span>Phone number on the ticket</span>
+              <input type="tel" id="custPhone" value="082 555 0123" inputmode="tel" autocomplete="tel">
+            </label>
+          </div>
+          <div class="tickets" id="custList"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CALL COORDINATOR -->
+    <section id="p-coordinator" class="portal" aria-labelledby="h-coord" hidden>
+      <div class="portal-head">
+        <h1 id="h-coord">Call coordinator desk</h1>
+        <p>Triage new tickets, log phone calls, and assign each visit to the right technician.</p>
+      </div>
+      <div class="actions-bar">
+        <button type="button" class="btn primary" data-act="toggleCall" id="callToggle" aria-expanded="false" aria-controls="callPanel">Log a phone call</button>
+      </div>
+      <div class="card" id="callPanel" hidden style="margin-bottom:18px">
+        <div class="card-head"><h2>Log a phone call</h2></div>
+        <div id="callFormMount"></div>
+      </div>
+      <div class="stats" id="stats"></div>
+      <div class="work">
+        <div class="card">
+          <div class="card-head">
+            <h2>Ticket queue</h2>
+            <div class="chips" id="filters" role="group" aria-label="Filter by status"></div>
+          </div>
+          <div class="tablewrap">
+            <table>
+              <thead><tr><th>Ticket</th><th>Customer</th><th>Problem</th><th>Urgency</th><th>Visit</th><th>Status</th><th>Technician</th></tr></thead>
+              <tbody id="rows"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card detail" id="detail"></div>
+      </div>
+    </section>
+
+    <!-- TECHNICIAN -->
+    <section id="p-technician" class="portal" aria-labelledby="h-tech" hidden>
+      <div class="portal-head">
+        <h1 id="h-tech">My jobs</h1>
+        <p>Your scheduled visits in time order. Start a job when you arrive and add notes when you finish.</p>
+      </div>
+      <div class="who">
+        <label class="field"><span>Signed in as</span><select id="techMe"></select></label>
+        <p class="muted" id="techCovers"></p>
+      </div>
+      <div id="techJobs"></div>
+      <div class="sub" style="margin-top:28px">Recently completed</div>
+      <ul class="done-list" id="techDone"></ul>
+    </section>
+  </main>
+
+  <p class="foot">Prototype with example customers and technicians. Everything lives in this page and resets when it reloads.</p>
+</div>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+
+<script>
+(function () {
+  'use strict';
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  /* ---------- dates ---------- */
+  const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const pad = n => String(n).padStart(2, '0');
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  const addDays = n => { const d = new Date(today); d.setDate(d.getDate() + n); return d; };
+  const parseISO = s => { const p = s.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); };
+  const fmtDate = s => { const d = parseISO(s); return DAYS[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()]; };
+  const dayLabel = s => {
+    const diff = Math.round((parseISO(s) - today) / 864e5);
+    return diff === 0 ? 'Today' : diff === 1 ? 'Tomorrow' : fmtDate(s);
+  };
+  const fmtStamp = ts => { const d = new Date(ts); return fmtDate(iso(d)) + ', ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+  const TIMES = ['08:00–10:00', '10:00–12:00', '13:00–15:00', '15:00–17:00'];
+  function bookableDays() {
+    const out = [];
+    for (let i = 0; out.length < 7; i++) { const d = addDays(i); if (d.getDay() !== 0) out.push(iso(d)); }
+    return out;
+  }
+  function slotPast(date, time) {
+    if (date !== iso(today)) return date < iso(today);
+    return parseInt(time, 10) <= new Date().getHours();
+  }
+  const bd = i => bookableDays()[i];
+
+  /* ---------- reference data ---------- */
+  const AREAS = ['Soshanguve', 'Mabopane', 'Pretoria North', 'Pretoria CBD', 'Sunnyside', 'Hatfield', 'Mamelodi', 'Centurion', 'Midrand'];
+  const TECHS = [
+    { id: 't1', name: 'Lerato Nkosi', areas: ['Soshanguve', 'Mabopane', 'Pretoria North'] },
+    { id: 't2', name: 'Sipho Dlamini', areas: ['Centurion', 'Midrand'] },
+    { id: 't3', name: 'Karabo Mahlangu', areas: ['Hatfield', 'Sunnyside', 'Pretoria CBD', 'Mamelodi'] }
+  ];
+  const TIPS = {
+    'Wi-Fi or internet': [
+      'If there was load shedding, wait two minutes after the power returns and check that the router has fully started.',
+      'Switch the router off at the wall, wait 30 seconds, switch it on and wait for the internet light to settle.',
+      'Check that the cable from the fibre box to the router is firm at both ends.',
+      'On your device, forget the Wi-Fi network and reconnect with the password on the router label.'
+    ],
+    'Printer': [
+      'Check that the printer is on, has paper and shows no error light.',
+      'Switch the printer off and on, then cancel any stuck jobs in the print queue.',
+      'Make sure it is the default printer on your computer and that it is connected to the same Wi-Fi.',
+      'Try printing a test page from the printer settings.'
+    ],
+    'Password or locked account': [
+      'Wait 15 minutes. Many accounts unlock themselves after repeated wrong attempts.',
+      'Use the "Forgot password" link on the sign-in page and check your spam folder for the reset email.',
+      'Check that Caps Lock is off and that you are using the right email address.'
+    ],
+    'Slow computer': [
+      'Restart the computer. A restart clears more than shutting the lid.',
+      'Press Ctrl+Shift+Esc, open Task Manager and see which program is using the most memory or disk.',
+      'Check that at least 15% of the drive is free and install any waiting Windows updates.',
+      'Run a full scan in Windows Security.'
+    ],
+    'Virus or suspicious pop-ups': [
+      'Disconnect from Wi-Fi or unplug the network cable.',
+      'Do not enter passwords or banking details until a technician has checked the device.',
+      'Close pop-ups from Task Manager (Ctrl+Shift+Esc), not by clicking inside them.',
+      'Run a full scan in Windows Security.'
+    ],
+    'Laptop or PC will not start': [
+      'Unplug the charger, hold the power button for 15 seconds, then plug in and try again.',
+      'Try a different wall socket. If you had load shedding, check the surge protector is switched on.',
+      'Remove USB drives and other devices, then start again.'
+    ],
+    'Email setup': [
+      'Confirm the email address and password by signing in on the provider\'s website.',
+      'Remove the account from your mail app and add it again.',
+      'Check that your device date and time are correct.'
+    ],
+    'Software install': [
+      'Restart the computer and run the installer again as administrator (right-click, Run as administrator).',
+      'Check that the drive has enough free space for the program.',
+      'Temporarily pause third-party antivirus only if the installer is from a source you trust.'
+    ],
+    'Something else': [
+      'Restart the device and check whether the problem comes back.',
+      'Write down any error message exactly as it appears.',
+      'Note when it started and anything that changed just before.'
+    ]
+  };
+  const TYPES = Object.keys(TIPS);
+  const URG = [
+    { v: 'Low', note: 'Can wait. Reply within 3 working days.' },
+    { v: 'Normal', note: 'Reply by the next working day.' },
+    { v: 'High', note: 'Work has stopped. Same-day reply.' }
+  ];
+  const STATUS_KEY = { 'Open': 'open', 'Scheduled': 'sched', 'In progress': 'prog', 'Resolved': 'done' };
+  const STATUS_ORDER = ['Open', 'Scheduled', 'In progress', 'Resolved'];
+  const URG_RANK = { High: 0, Normal: 1, Low: 2 };
+
+  /* ---------- state and seed data ---------- */
+  const ago = h => Date.now() - h * 3600e3;
+  const ev = (h, text) => ({ at: ago(h), text });
+  const mkId = n => 'FX-' + String(today.getFullYear()).slice(2) + pad(today.getMonth() + 1) + '-' + String(n).padStart(4, '0');
+  const T = o => Object.assign({ tech: null, slot: null, slotConfirmed: false, resolution: '', events: [], source: 'Web', address: '' }, o);
+  const techName = id => { const t = TECHS.find(x => x.id === id); return t ? t.name : 'Unassigned'; };
+
+  const state = {
+    seq: 44,
+    sel: null,
+    filter: 'All',
+    me: 't1',
+    flow: { id: null, date: null, time: null },
+    tickets: [
+      T({ id: mkId(38), name: 'Thabo Mokoena', phone: '082 555 0123', area: 'Soshanguve', address: 'Block L, opposite the spaza shop', type: 'Wi-Fi or internet', desc: 'Router lights are on but there is no internet since Tuesday. I restarted it twice after load shedding.', urgency: 'Normal', status: 'Scheduled', tech: 't1', slot: { date: bd(1), time: TIMES[1] }, slotConfirmed: true, created: ago(30),
+        events: [ev(30, 'Logged by the customer online'), ev(29, 'Customer asked for a visit on ' + fmtDate(bd(1)) + ', ' + TIMES[1]), ev(5, 'Scheduled with Lerato Nkosi')] }),
+      T({ id: mkId(39), name: 'Thabo Mokoena', phone: '082 555 0123', area: 'Soshanguve', address: 'Block L, opposite the spaza shop', type: 'Printer', desc: 'Printer says offline although it is switched on.', urgency: 'Low', status: 'Resolved', resolution: 'Fixed by the customer with the quick fixes.', created: ago(70),
+        events: [ev(70, 'Logged by the customer online'), ev(70, 'Customer fixed it with the quick fixes')] }),
+      T({ id: mkId(40), name: 'Nomvula Khumalo', phone: '071 555 0188', area: 'Centurion', address: 'Unit 4, Lakeview Office Park', type: 'Virus or suspicious pop-ups', desc: 'Three office PCs show pop-ups asking for payment to unlock files. We have unplugged them from the network.', urgency: 'High', source: 'Phone', status: 'Open', slot: { date: bd(1), time: TIMES[0] }, created: ago(2),
+        events: [ev(2, 'Logged by the call coordinator from a phone call')] }),
+      T({ id: mkId(41), name: 'Johan van Wyk', phone: '083 555 0166', area: 'Hatfield', address: 'Flat 12, Burnett Street', type: 'Password or locked account', desc: 'Locked out of my work email after changing phones. The reset code goes to my old number.', urgency: 'Normal', status: 'Open', slot: { date: bd(2), time: TIMES[0] }, created: ago(6),
+        events: [ev(6, 'Logged by the customer online'), ev(6, 'Customer asked for a visit on ' + fmtDate(bd(2)) + ', ' + TIMES[0])] }),
+      T({ id: mkId(42), name: 'Precious Maseko', phone: '072 555 0109', area: 'Mamelodi', address: '14 Tsamaya Road', type: 'Laptop or PC will not start', desc: 'Laptop would not power on after load shedding last night. No lights when charging.', urgency: 'Normal', source: 'Phone', status: 'In progress', tech: 't3', slot: { date: bd(0), time: TIMES[2] }, slotConfirmed: true, created: ago(26),
+        events: [ev(26, 'Logged by the call coordinator from a phone call'), ev(20, 'Scheduled with Karabo Mahlangu'), ev(1, 'Karabo Mahlangu started the job')] }),
+      T({ id: mkId(43), name: 'Ayanda Dube', phone: '076 555 0177', area: 'Midrand', address: '', type: 'Email setup', desc: 'Need my new work email added to my phone and laptop.', urgency: 'Low', status: 'Open', created: ago(4),
+        events: [ev(4, 'Logged by the customer online')] }),
+      T({ id: mkId(36), name: 'Lindiwe Sithole', phone: '084 555 0150', area: 'Pretoria CBD', address: '3rd floor, Kerk Street', type: 'Software install', desc: 'Accounting software would not install on the new laptop.', urgency: 'Normal', status: 'Resolved', tech: 't3', slot: { date: iso(addDays(-1)), time: TIMES[1] }, slotConfirmed: true, resolution: 'Cleared 20 GB of disk space, installed the software and activated the licence.', created: ago(72),
+        events: [ev(72, 'Logged by the customer online'), ev(48, 'Scheduled with Karabo Mahlangu'), ev(27, 'Resolved by Karabo Mahlangu')] }),
+      T({ id: mkId(37), name: 'Gugu Ndlovu', phone: '079 555 0121', area: 'Mabopane', address: 'Station Road', type: 'Password or locked account', desc: 'Cannot sign in to my school portal account.', urgency: 'Low', status: 'Resolved', tech: 't1', slot: { date: iso(addDays(-2)), time: TIMES[2] }, slotConfirmed: true, resolution: 'Reset the account password and set up a recovery email.', created: ago(96),
+        events: [ev(96, 'Logged by the customer online'), ev(74, 'Scheduled with Lerato Nkosi'), ev(51, 'Resolved by Lerato Nkosi')] }),
+      T({ id: mkId(44), name: 'Sibusiso Zulu', phone: '081 555 0134', area: 'Sunnyside', address: 'Room 8, Esselen Street', type: 'Slow computer', desc: 'Desktop takes about ten minutes to start and freezes when I open a browser.', urgency: 'Normal', status: 'Scheduled', tech: 't3', slot: { date: bd(2), time: TIMES[1] }, slotConfirmed: true, created: ago(12),
+        events: [ev(12, 'Logged by the customer online'), ev(8, 'Scheduled with Karabo Mahlangu')] })
+    ]
+  };
+  const byId = id => state.tickets.find(t => t.id === id);
+  const log = (t, text) => t.events.push({ at: Date.now(), text });
+  const normPhone = p => { let d = String(p).replace(/\D/g, ''); if (d.length === 11 && d.startsWith('27')) d = '0' + d.slice(2); return d; };
+
+  const pill = s => '<span class="pill st-' + STATUS_KEY[s] + '">' + esc(s) + '</span>';
+  const urgTag = u => '<span class="u-' + u.toLowerCase() + '">' + esc(u) + '</span>';
+  const slotText = s => s ? fmtDate(s.date) + ', ' + s.time : '';
+
+  let toastTimer;
+  function toast(msg) {
+    const el = $('#toast'); el.textContent = msg; el.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.hidden = true; }, 3200);
+  }
+
+  /* ---------- shared ticket form ---------- */
+  function formHTML(p, withSlot) {
+    const areas = '<option value="">Choose an area</option>' + AREAS.map(a => '<option>' + a + '</option>').join('');
+    const types = '<option value="">Choose the kind of problem</option>' + TYPES.map(a => '<option>' + a + '</option>').join('');
+    const urg = URG.map(u => '<label class="opt"><input type="radio" name="' + p + '-urg" value="' + u.v + '"' + (u.v === 'Normal' ? ' checked' : '') + '><b>' + u.v + '</b><small>' + u.note + '</small></label>').join('');
+    const slot = withSlot
+      ? '<label class="field"><span>Agreed day (optional)</span><select id="' + p + '-date"><option value="">Not agreed yet</option>' + bookableDays().map(d => '<option value="' + d + '">' + fmtDate(d) + '</option>').join('') + '</select></label>' +
+        '<label class="field"><span>Agreed time (optional)</span><select id="' + p + '-time"><option value="">Not agreed yet</option>' + TIMES.map(t => '<option>' + t + '</option>').join('') + '</select></label>'
+      : '';
+    return '<form id="' + p + '-form" class="fgrid" novalidate>' +
+      '<label class="field"><span>' + (withSlot ? 'Caller name' : 'Your name') + '</span><input type="text" id="' + p + '-name" autocomplete="name" placeholder="Thabo Mokoena"></label>' +
+      '<label class="field"><span>Phone number</span><input type="tel" id="' + p + '-phone" inputmode="tel" autocomplete="tel" placeholder="082 555 0123"></label>' +
+      '<label class="field"><span>Area</span><select id="' + p + '-area">' + areas + '</select></label>' +
+      '<label class="field"><span>Street or landmark</span><input type="text" id="' + p + '-address" placeholder="Block L, near the spaza shop"></label>' +
+      '<label class="field full"><span>What kind of problem is it?</span><select id="' + p + '-type">' + types + '</select></label>' +
+      '<label class="field full"><span>What is happening?</span><textarea id="' + p + '-desc" placeholder="When did it start, and what have you already tried?"></textarea></label>' +
+      '<fieldset class="full"><legend>How urgent is it?</legend><div class="urg">' + urg + '</div></fieldset>' + slot +
+      '<div class="full err" id="' + p + '-err" role="alert"></div>' +
+      '<div class="full"><button type="submit" class="btn primary">' + (withSlot ? 'Log call' : 'Log ticket') + '</button></div>' +
+      '</form>';
+  }
+  function readForm(p, withSlot) {
+    const v = id => $('#' + p + '-' + id).value.trim();
+    const checked = $('input[name="' + p + '-urg"]:checked');
+    const f = { name: v('name'), phone: v('phone'), area: v('area'), address: v('address'), type: v('type'), desc: v('desc'), urgency: checked ? checked.value : 'Normal', slot: null };
+    const errs = [];
+    if (f.name.length < 2) errs.push('Enter a name.');
+    if (!/^0\d{9}$/.test(normPhone(f.phone))) errs.push('Enter a 10-digit phone number, for example 082 555 0123.');
+    if (!f.area) errs.push('Choose the area.');
+    if (!f.type) errs.push('Choose the kind of problem.');
+    if (f.desc.length < 10) errs.push('Describe the problem in a sentence or two.');
+    if (withSlot) {
+      const d = v('date'), t = v('time');
+      if ((d && !t) || (!d && t)) errs.push('Pick both a day and a time, or leave both as not agreed.');
+      else if (d && t) f.slot = { date: d, time: t };
+    }
+    return { f, errs };
+  }
+  function showErrs(p, errs) {
+    $('#' + p + '-err').innerHTML = errs.length ? '<ul>' + errs.map(e => '<li>' + esc(e) + '</li>').join('') + '</ul>' : '';
+  }
+  function createTicket(f, source) {
+    const t = T({
+      id: mkId(++state.seq), name: f.name, phone: f.phone, area: f.area, address: f.address, type: f.type, desc: f.desc,
+      urgency: f.urgency, source: source, status: 'Open', slot: f.slot, created: Date.now(),
+      events: [{ at: Date.now(), text: source === 'Phone' ? 'Logged by the call coordinator from a phone call' : 'Logged by the customer online' }]
+    });
+    if (f.slot) log(t, 'Visit requested for ' + slotText(f.slot));
+    state.tickets.push(t);
+    return t;
+  }
+
+  /* ---------- customer portal ---------- */
+  function setStep(s) {
+    ['form', 'help', 'book', 'done'].forEach(k => { $('#step-' + k).hidden = k !== s; });
+    const idx = { form: 0, help: 1, book: 2, done: 2 }[s];
+    $$('#stepper li').forEach((li, i) => {
+      li.classList.toggle('on', i === idx && s !== 'done');
+      li.classList.toggle('past', i < idx || s === 'done');
+    });
+  }
+  function renderHelp() {
+    const t = byId(state.flow.id); if (!t) return;
+    $('#helpTitle').textContent = 'Ticket ' + t.id + ' is logged';
+    $('#helpIntro').textContent = 'Many ' + t.type.toLowerCase() + ' problems clear up with these steps. Try them in order.';
+    $('#helpList').innerHTML = (TIPS[t.type] || TIPS['Something else']).map(x => '<li>' + esc(x) + '</li>').join('');
+  }
+  function renderBook() {
+    const f = state.flow;
+    $('#dateChips').innerHTML = bookableDays().map(d => {
+      const allPast = TIMES.every(t => slotPast(d, t));
+      return '<button type="button" class="chip' + (f.date === d ? ' on' : '') + '" data-act="pickDate" data-v="' + d + '"' + (allPast ? ' disabled' : '') + '>' + fmtDate(d) + (d === iso(today) ? ' <small>today</small>' : '') + '</button>';
+    }).join('');
+    $('#timeChips').innerHTML = TIMES.map(tm => {
+      const dis = !f.date || slotPast(f.date, tm);
+      return '<button type="button" class="chip' + (f.time === tm ? ' on' : '') + '" data-act="pickTime" data-v="' + tm + '"' + (dis ? ' disabled' : '') + '>' + tm + '</button>';
+    }).join('');
+    $('#confirmBook').disabled = !(f.date && f.time);
+  }
+  function trackHTML(t) {
+    const idx = STATUS_ORDER.indexOf(t.status);
+    const labels = ['Logged', 'Visit booked', 'Technician working', 'Resolved'];
+    return '<ol class="track' + (t.status === 'Resolved' ? ' fin' : '') + '" aria-label="Progress">' +
+      labels.map((l, i) => '<li class="' + (i < idx ? 'done' : i === idx ? 'now' : '') + '">' + l + '</li>').join('') + '</ol>';
+  }
+  function renderCust() {
+    const digits = normPhone($('#custPhone').value);
+    const list = digits ? state.tickets.filter(t => normPhone(t.phone) === digits).sort((a, b) => b.created - a.created) : [];
+    if (!list.length) {
+      $('#custList').innerHTML = '<div class="empty">' + (digits ? 'No tickets found for this number. Check the number or log a problem.' : 'Enter the phone number you used to see your tickets.') + '</div>';
+      return;
+    }
+    $('#custList').innerHTML = list.map(t => {
+      let note = '';
+      if (t.status === 'Open' && t.slot) note = '<p class="note">Visit requested for <b>' + esc(slotText(t.slot)) + '</b>. Waiting for a coordinator to confirm.</p>';
+      else if (t.status === 'Open') note = '<p class="note">No visit booked yet.</p><div><button type="button" class="btn" data-act="book" data-id="' + t.id + '">Book a visit</button></div>';
+      else if (t.status === 'Scheduled') note = '<p class="note"><b>' + esc(techName(t.tech)) + '</b> is booked for <b>' + esc(slotText(t.slot)) + '</b>.</p>';
+      else if (t.status === 'In progress') note = '<p class="note"><b>' + esc(techName(t.tech)) + '</b> is working on this now.</p>';
+      else if (t.resolution) note = '<p class="note"><b>Resolution:</b> ' + esc(t.resolution) + '</p>';
+      return '<article class="tk"><div class="tk-head"><div><div class="tk-title">' + esc(t.type) + '</div><span class="mono muted">' + esc(t.id) + '</span></div>' + pill(t.status) + '</div>' +
+        '<p>' + esc(t.desc) + '</p>' + trackHTML(t) + note + '</article>';
+    }).join('');
+  }
+
+  /* ---------- coordinator portal ---------- */
+  function sortQueue(list) {
+    return list.slice().sort((a, b) =>
+      STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status) ||
+      URG_RANK[a.urgency] - URG_RANK[b.urgency] || a.created - b.created);
+  }
+  function renderCoord() {
+    const all = state.tickets;
+    const count = s => all.filter(t => t.status === s).length;
+    const highOpen = all.filter(t => t.status === 'Open' && t.urgency === 'High').length;
+    $('#stats').innerHTML =
+      '<div class="stat' + (highOpen ? ' flag' : '') + '"><b>' + count('Open') + '</b><span>Need assigning' + (highOpen ? ' (' + highOpen + ' high urgency)' : '') + '</span></div>' +
+      '<div class="stat"><b>' + count('Scheduled') + '</b><span>Scheduled</span></div>' +
+      '<div class="stat"><b>' + count('In progress') + '</b><span>In progress</span></div>' +
+      '<div class="stat"><b>' + count('Resolved') + '</b><span>Resolved</span></div>';
+
+    $('#filters').innerHTML = ['All'].concat(STATUS_ORDER).map(s => {
+      const n = s === 'All' ? all.length : count(s);
+      return '<button type="button" class="chip' + (state.filter === s ? ' on' : '') + '" data-act="filter" data-v="' + s + '" aria-pressed="' + (state.filter === s) + '">' + s + ' <small>' + n + '</small></button>';
+    }).join('');
+
+    const list = sortQueue(state.filter === 'All' ? all : all.filter(t => t.status === state.filter));
+    $('#rows').innerHTML = list.length ? list.map(t =>
+      '<tr data-row data-id="' + t.id + '" class="' + (state.sel === t.id ? 'sel' : '') + '">' +
+      '<td><button type="button" class="rowbtn mono" data-act="sel" data-id="' + t.id + '">' + esc(t.id) + '</button><small>' + esc(t.source === 'Phone' ? 'Phone call' : 'Online') + '</small></td>' +
+      '<td>' + esc(t.name) + '<small>' + esc(t.area) + '</small></td>' +
+      '<td>' + esc(t.type) + '</td>' +
+      '<td>' + urgTag(t.urgency) + '</td>' +
+      '<td>' + (t.slot ? esc(fmtDate(t.slot.date)) + '<small>' + esc(t.slot.time) + (t.slotConfirmed ? '' : ' (requested)') + '</small>' : '<span class="muted">None</span>') + '</td>' +
+      '<td>' + pill(t.status) + '</td>' +
+      '<td>' + (t.tech ? esc(techName(t.tech)) : '<span class="muted">Unassigned</span>') + '</td></tr>'
+    ).join('') : '<tr><td colspan="7"><div class="empty" style="margin:10px 0">No tickets with this status.</div></td></tr>';
+    renderDetail();
+  }
+  function renderDetail() {
+    const box = $('#detail');
+    const t = state.sel && byId(state.sel);
+    if (!t) { box.innerHTML = '<h2>Ticket details</h2><p class="muted" style="margin-top:8px">Select a ticket from the queue to review it and assign a technician.</p>'; return; }
+    const canAssign = t.status === 'Open' || t.status === 'Scheduled';
+    let assign = '';
+    if (canAssign) {
+      const covering = TECHS.filter(x => x.areas.includes(t.area));
+      const ordered = covering.concat(TECHS.filter(x => !x.areas.includes(t.area)));
+      const preTech = t.tech || (covering[0] ? covering[0].id : '');
+      const days = bookableDays(); if (t.slot && !days.includes(t.slot.date)) days.unshift(t.slot.date);
+      const preDate = t.slot ? t.slot.date : days[0], preTime = t.slot ? t.slot.time : TIMES[0];
+      assign = '<div class="assign"><h3>' + (t.status === 'Scheduled' ? 'Reassign or reschedule' : 'Assign a technician') + '</h3>' +
+        '<label class="field"><span>Technician</span><select id="asTech"><option value="">Choose a technician</option>' +
+        ordered.map(x => '<option value="' + x.id + '"' + (x.id === preTech ? ' selected' : '') + '>' + esc(x.name) + ' · ' + (x.areas.includes(t.area) ? 'covers ' + esc(t.area) : 'outside usual area') + '</option>').join('') + '</select></label>' +
+        '<div class="row2"><label class="field"><span>Day</span><select id="asDate">' + days.map(d => '<option value="' + d + '"' + (d === preDate ? ' selected' : '') + '>' + fmtDate(d) + '</option>').join('') + '</select></label>' +
+        '<label class="field"><span>Time</span><select id="asTime">' + TIMES.map(x => '<option' + (x === preTime ? ' selected' : '') + '>' + x + '</option>').join('') + '</select></label></div>' +
+        '<p class="hint" id="asLoad"></p><p class="err" id="asErr" role="alert"></p>' +
+        '<div><button type="button" class="btn primary" data-act="assign">Assign and schedule</button></div></div>';
+    } else {
+      assign = '<div class="assign"><h3>Assignment</h3><p class="note"><b>' + esc(techName(t.tech)) + '</b>' + (t.slot ? ' · ' + esc(slotText(t.slot)) : '') + '</p>' +
+        (t.resolution ? '<p class="note"><b>Resolution:</b> ' + esc(t.resolution) + '</p>' : '') + '</div>';
+    }
+    box.innerHTML =
+      '<div class="card-head" style="margin-bottom:6px"><h2 class="mono" style="font-family:var(--font-mono);font-size:16px">' + esc(t.id) + '</h2>' + pill(t.status) + '</div>' +
+      '<dl class="kv">' +
+      '<div><dt>Customer</dt><dd>' + esc(t.name) + '</dd></div>' +
+      '<div><dt>Phone</dt><dd>' + esc(t.phone) + '</dd></div>' +
+      '<div><dt>Location</dt><dd>' + esc(t.area) + (t.address ? ', ' + esc(t.address) : '') + '</dd></div>' +
+      '<div><dt>Problem</dt><dd>' + esc(t.type) + ' · ' + urgTag(t.urgency) + '</dd></div>' +
+      '<div><dt>Preferred</dt><dd>' + (t.slot && !t.slotConfirmed ? esc(slotText(t.slot)) : '<span class="muted">No time requested</span>') + '</dd></div></dl>' +
+      '<div class="desc">' + esc(t.desc) + '</div>' + assign +
+      '<div class="sub">History</div><ul class="timeline">' +
+      t.events.slice().sort((a, b) => a.at - b.at).map(e => '<li><time>' + esc(fmtStamp(e.at)) + '</time>' + esc(e.text) + '</li>').join('') + '</ul>';
+    if (canAssign) updateLoad();
+  }
+  function updateLoad() {
+    const el = $('#asLoad'); if (!el) return;
+    const tech = $('#asTech').value, date = $('#asDate').value;
+    if (!tech) { el.textContent = ''; return; }
+    const jobs = state.tickets.filter(x => x.id !== state.sel && x.tech === tech && x.slotConfirmed && x.slot && x.slot.date === date && x.status !== 'Resolved');
+    el.textContent = jobs.length
+      ? techName(tech) + ' already has ' + jobs.length + ' job' + (jobs.length > 1 ? 's' : '') + ' on ' + fmtDate(date) + ': ' + jobs.map(j => j.slot.time).join(', ') + '.'
+      : techName(tech) + ' has no other jobs on ' + fmtDate(date) + '.';
+  }
+  function assign() {
+    const t = byId(state.sel); if (!t) return;
+    const tech = $('#asTech').value, date = $('#asDate').value, time = $('#asTime').value, err = $('#asErr');
+    if (!tech) { err.textContent = 'Choose a technician.'; return; }
+    if (slotPast(date, time)) { err.textContent = 'That time has already passed. Pick a later slot.'; return; }
+    const clash = state.tickets.find(x => x.id !== t.id && x.tech === tech && x.slotConfirmed && x.slot && x.slot.date === date && x.slot.time === time && x.status !== 'Resolved');
+    if (clash) { err.textContent = techName(tech) + ' already has ' + clash.id + ' at that time. Pick another time or technician.'; return; }
+    t.tech = tech; t.slot = { date: date, time: time }; t.slotConfirmed = true; t.status = 'Scheduled';
+    log(t, 'Scheduled with ' + techName(tech) + ' for ' + slotText(t.slot));
+    toast(t.id + ' scheduled with ' + techName(tech));
+    renderAll();
+  }
+
+  /* ---------- technician portal ---------- */
+  function renderTech() {
+    const sel = $('#techMe');
+    if (!sel.options.length) sel.innerHTML = TECHS.map(x => '<option value="' + x.id + '">' + esc(x.name) + '</option>').join('');
+    sel.value = state.me;
+    const me = TECHS.find(x => x.id === state.me);
+    $('#techCovers').textContent = 'Covers ' + me.areas.join(', ') + '.';
+    const mine = state.tickets.filter(t => t.tech === state.me && (t.status === 'Scheduled' || t.status === 'In progress'))
+      .sort((a, b) => a.slot.date.localeCompare(b.slot.date) || TIMES.indexOf(a.slot.time) - TIMES.indexOf(b.slot.time));
+    if (!mine.length) {
+      $('#techJobs').innerHTML = '<div class="empty">No jobs scheduled for you. New assignments from the call coordinator appear here.</div>';
+    } else {
+      const groups = {}; mine.forEach(t => { (groups[t.slot.date] = groups[t.slot.date] || []).push(t); });
+      $('#techJobs').innerHTML = Object.keys(groups).sort().map(d =>
+        '<div class="day">' + esc(dayLabel(d)) + ' <small>' + groups[d].length + ' job' + (groups[d].length > 1 ? 's' : '') + '</small></div><div class="jobs">' +
+        groups[d].map(jobHTML).join('') + '</div>').join('');
+    }
+    const done = state.tickets.filter(t => t.tech === state.me && t.status === 'Resolved').sort((a, b) => b.slot.date.localeCompare(a.slot.date)).slice(0, 4);
+    $('#techDone').innerHTML = done.length
+      ? done.map(t => '<li><b>' + esc(t.name) + '</b> · ' + esc(t.type) + ' <span class="mono muted">' + esc(t.id) + '</span><div class="muted">' + esc(t.resolution) + '</div></li>').join('')
+      : '<li class="muted">No completed jobs yet.</li>';
+  }
+  function jobHTML(t) {
+    const actions = t.status === 'Scheduled'
+      ? '<div class="btn-row"><button type="button" class="btn primary" data-act="start" data-id="' + t.id + '">Start job</button></div>'
+      : '<label class="field"><span>Job notes (required to resolve or return)</span><textarea id="note-' + t.id + '" placeholder="What you found and what you did"></textarea></label>' +
+        '<p class="err" id="jerr-' + t.id + '" role="alert"></p>' +
+        '<div class="btn-row"><button type="button" class="btn primary" data-act="resolve" data-id="' + t.id + '">Mark resolved</button>' +
+        '<button type="button" class="btn" data-act="return" data-id="' + t.id + '">Return to coordinator</button></div>';
+    return '<article class="job"><div class="job-head"><div><span class="when">' + esc(t.slot.time) + '</span><span class="mono muted">' + esc(t.id) + '</span></div>' + pill(t.status) + '</div>' +
+      '<h3>' + esc(t.name) + ' · ' + esc(t.type) + '</h3>' +
+      '<dl class="kv"><div><dt>Address</dt><dd>' + (t.address ? esc(t.address) + ', ' : '') + esc(t.area) + '</dd></div>' +
+      '<div><dt>Phone</dt><dd>' + esc(t.phone) + '</dd></div><div><dt>Urgency</dt><dd>' + urgTag(t.urgency) + '</dd></div></dl>' +
+      '<div class="desc" style="margin:0">' + esc(t.desc) + '</div>' + actions + '</article>';
+  }
+
+  /* ---------- routing and render ---------- */
+  const ROLES = ['customer', 'coordinator', 'technician'];
+  function route() {
+    const h = (location.hash || '').slice(1);
+    const r = ROLES.indexOf(h) >= 0 ? h : 'customer';
+    ROLES.forEach(x => { $('#p-' + x).hidden = x !== r; });
+    $$('.roles a').forEach(a => { if (a.dataset.role === r) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  }
+  function renderAll() { renderCust(); renderCoord(); renderTech(); }
+
+  /* ---------- events ---------- */
+  document.addEventListener('submit', e => {
+    const id = e.target.id;
+    if (id !== 'cu-form' && id !== 'cc-form') return;
+    e.preventDefault();
+    const phone = id === 'cc-form';
+    const p = phone ? 'cc' : 'cu';
+    const r = readForm(p, phone);
+    showErrs(p, r.errs);
+    if (r.errs.length) return;
+    const t = createTicket(r.f, phone ? 'Phone' : 'Web');
+    e.target.reset();
+    if (phone) {
+      $('#callPanel').hidden = true; $('#callToggle').setAttribute('aria-expanded', 'false');
+      state.sel = t.id; state.filter = 'All';
+      toast('Call logged as ' + t.id);
+      renderAll();
+    } else {
+      $('#custPhone').value = t.phone;
+      state.flow = { id: t.id, date: null, time: null };
+      renderHelp(); setStep('help'); renderAll();
+    }
+  });
+
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-act]');
+    if (!b) {
+      const row = e.target.closest('tr[data-row]');
+      if (row) { state.sel = row.dataset.id; renderCoord(); if (matchMedia('(max-width:960px)').matches) $('#detail').scrollIntoView({ block: 'start' }); }
+      return;
+    }
+    const a = b.dataset.act, id = b.dataset.id, f = state.flow;
+    const t = id ? byId(id) : null;
+    if (a === 'fixed') {
+      const tk = byId(f.id);
+      tk.status = 'Resolved'; tk.resolution = 'Fixed by the customer with the quick fixes.'; log(tk, 'Customer fixed it with the quick fixes');
+      $('#doneTitle').textContent = 'Glad that worked';
+      $('#doneMsg').textContent = 'Ticket ' + tk.id + ' is closed. Log another problem if it comes back.';
+      setStep('done'); renderAll();
+    } else if (a === 'needTech') { f.date = null; f.time = null; renderBook(); setStep('book'); }
+    else if (a === 'pickDate') { f.date = b.dataset.v; if (f.time && slotPast(f.date, f.time)) f.time = null; renderBook(); }
+    else if (a === 'pickTime') { f.time = b.dataset.v; renderBook(); }
+    else if (a === 'confirmBook') {
+      const tk = byId(f.id); tk.slot = { date: f.date, time: f.time }; tk.slotConfirmed = false;
+      log(tk, 'Customer asked for a visit on ' + slotText(tk.slot));
+      $('#doneTitle').textContent = 'Visit requested';
+      $('#doneMsg').textContent = slotText(tk.slot) + ' for ticket ' + tk.id + '. A call coordinator will confirm it and assign a technician. Follow progress under Your tickets.';
+      setStep('done'); renderAll();
+    } else if (a === 'skipBook') {
+      $('#doneTitle').textContent = 'Ticket saved';
+      $('#doneMsg').textContent = 'Ticket ' + f.id + ' is open. You can book a visit from Your tickets whenever you are ready.';
+      setStep('done'); renderAll();
+    } else if (a === 'again') { setStep('form'); }
+    else if (a === 'book') { f.id = id; f.date = null; f.time = null; renderBook(); setStep('book'); $('#custFlow').scrollIntoView({ block: 'nearest' }); }
+    else if (a === 'toggleCall') {
+      const p = $('#callPanel'); p.hidden = !p.hidden; b.setAttribute('aria-expanded', String(!p.hidden));
+      if (!p.hidden) $('#cc-name').focus();
+    }
+    else if (a === 'filter') { state.filter = b.dataset.v; renderCoord(); }
+    else if (a === 'sel') { state.sel = id; renderCoord(); if (matchMedia('(max-width:960px)').matches) $('#detail').scrollIntoView({ block: 'start' }); }
+    else if (a === 'assign') assign();
+    else if (a === 'start') {
+      t.status = 'In progress'; log(t, techName(t.tech) + ' started the job'); toast('Job ' + t.id + ' started'); renderAll();
+    } else if (a === 'resolve' || a === 'return') {
+      const note = $('#note-' + id).value.trim();
+      if (note.length < 5) { $('#jerr-' + id).textContent = 'Add a short note about what you found or did.'; return; }
+      if (a === 'resolve') {
+        t.status = 'Resolved'; t.resolution = note; log(t, 'Resolved by ' + techName(t.tech)); toast(t.id + ' marked resolved');
+      } else {
+        log(t, 'Returned to the coordinator by ' + techName(t.tech) + ': ' + note);
+        t.status = 'Open'; t.tech = null; t.slotConfirmed = false; toast(t.id + ' returned to the coordinator');
+      }
+      renderAll();
+    }
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.matches && e.target.matches('tr[data-row]')) { state.sel = e.target.dataset.id; renderCoord(); }
+  });
+  document.addEventListener('change', e => {
+    if (e.target.id === 'techMe') { state.me = e.target.value; renderTech(); }
+    if (e.target.id === 'asTech' || e.target.id === 'asDate') updateLoad();
+  });
+  $('#custPhone').addEventListener('input', renderCust);
+  window.addEventListener('hashchange', route);
+
+  /* ---------- start ---------- */
+  $('#custFormMount').innerHTML = formHTML('cu', false);
+  $('#callFormMount').innerHTML = formHTML('cc', true);
+  const first = sortQueue(state.tickets.filter(t => t.status === 'Open'))[0];
+  state.sel = first ? first.id : null;
+  setStep('form');
+  route();
+  renderAll();
+})();
+</script>
+
+</body></html>
